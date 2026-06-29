@@ -1,6 +1,7 @@
 import json
 from typing import Dict, Any
 import spacy
+from ai.sarvam_client import generate_response
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
@@ -10,10 +11,6 @@ except OSError:
 
 
 def extract_context(text: str) -> Dict[str, list]:
-    """
-    Extract entities and important keywords
-    to provide additional context to the AI model.
-    """
 
     doc = nlp(text)
 
@@ -51,88 +48,65 @@ def extract_context(text: str) -> Dict[str, list]:
 
 
 def create_perspective_prompt(text: str) -> str:
-    """
-    Builds prompt for perspective analysis.
-    """
 
     context = extract_context(text)
 
     prompt = f"""
-You are an expert media analysis assistant.
+        You are an expert media analysis assistant.
 
-Analyze the following content and determine:
+        Analyze the following content and determine:
 
-1. Whether expert opinions are missing.
-2. Whether opposing viewpoints are missing.
-3. Whether stakeholder perspectives are missing.
-4. Suggest additional perspectives that should be considered.
-5. Provide a short explanation.
+        1. Whether expert opinions are missing.
+        2. Whether opposing viewpoints are missing.
+        3. Whether stakeholder perspectives are missing.
+        4. Suggest additional perspectives that should be considered.
+        5. Provide a short explanation.
 
-Definitions:
+        Definitions:
 
-Missing expert opinions:
-The content does not include insights from qualified experts.
+        Missing expert opinions:
+        The content does not include insights from qualified experts.
 
-Missing opposing viewpoints:
-The content presents one side but omits reasonable alternative viewpoints.
+        Missing opposing viewpoints:
+        The content presents one side but omits reasonable alternative viewpoints.
 
-Missing stakeholder perspectives:
-The content ignores groups affected by the topic.
+        Missing stakeholder perspectives:
+        The content ignores groups affected by the topic.
 
-Detected Entities:
-{context["entities"]}
+        Detected Entities:
+        {context["entities"]}
 
-Detected Keywords:
-{context["keywords"]}
+        Detected Keywords:
+        {context["keywords"]}
+        Do not include markdown, code blocks, explanations, or additional text outside the JSON object.
+        Return ONLY valid JSON:
 
-Return ONLY valid JSON:
+        {{
+            "missing_expert_opinions": false,
+            "missing_opposing_viewpoints": false,
+            "missing_stakeholder_perspectives": false,
+            "additional_perspectives": [
+                "Perspective 1",
+                "Perspective 2"
+            ],
+            "explanation": "Short explanation."
+        }}
 
-{{
-    "missing_expert_opinions": false,
-    "missing_opposing_viewpoints": false,
-    "missing_stakeholder_perspectives": false,
-    "additional_perspectives": [
-        "Perspective 1",
-        "Perspective 2"
-    ],
-    "explanation": "Short explanation."
-}}
-
-Text:
-{text}
-"""
+        Text:
+        {text}
+        """
 
     return prompt
 
 
 def get_perspective_from_model(text: str) -> str:
-    """
-    Sends prompt to Sarvam AI.
-    Currently returns placeholder response.
-    """
 
     prompt = create_perspective_prompt(text)
 
-    # TODO:
-    # Replace with actual Sarvam AI API call
-
-    return json.dumps(
-        {
-            "missing_expert_opinions": False,
-            "missing_opposing_viewpoints": False,
-            "missing_stakeholder_perspectives": False,
-            "additional_perspectives": [],
-            "explanation": "Sarvam AI integration pending."
-        }
-    )
+    return generate_response(prompt)
 
 
-def parse_model_response(
-    response: str
-) -> Dict[str, Any]:
-    """
-    Parses model response safely.
-    """
+def parse_model_response(response: str) -> Dict[str, Any]:
 
     try:
 
@@ -163,12 +137,7 @@ def parse_model_response(
         }
 
 
-def analyze_perspectives(
-    text: str
-) -> Dict[str, Any]:
-    """
-    Main perspective analysis function.
-    """
+def analyze_perspectives(text: str) -> Dict[str, Any]:
 
     if not text or not text.strip():
 

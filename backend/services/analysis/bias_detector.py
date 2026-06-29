@@ -1,37 +1,22 @@
 import json
 from typing import Dict, Any
-
+from ai.sarvam_client import generate_response
 import spacy
 from transformers import pipeline
-
-# Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    raise OSError(
-        "spaCy model not found. Run: python -m spacy download en_core_web_sm"
-    )
+    raise OSError("spaCy model not found. Run: python -m spacy download en_core_web_sm")
 
-# Load sentiment model
-sentiment_classifier = pipeline(
-    "sentiment-analysis",
-    model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-)
+sentiment_classifier = pipeline("sentiment-analysis",model="cardiffnlp/twitter-roberta-base-sentiment-latest")
 
 
 def extract_context(text: str) -> Dict[str, list]:
-    """
-    Extract entities and keywords for context.
-    """
+    
 
     doc = nlp(text)
 
-    entities = list(
-        set(
-            ent.text
-            for ent in doc.ents
-        )
-    )
+    entities = list(set(ent.text for ent in doc.ents))
 
     keywords = []
 
@@ -47,9 +32,7 @@ def extract_context(text: str) -> Dict[str, list]:
         if len(token.text) <= 2:
             continue
 
-        keywords.append(
-            token.lemma_.lower()
-        )
+        keywords.append(token.lemma_.lower())
 
     keywords = list(set(keywords))
 
@@ -60,10 +43,6 @@ def extract_context(text: str) -> Dict[str, list]:
 
 
 def get_sentiment_signal(text: str) -> Dict[str, Any]:
-    """
-    Uses transformer model to obtain
-    sentiment/context information.
-    """
 
     result = sentiment_classifier(text)[0]
 
@@ -77,99 +56,76 @@ def get_sentiment_signal(text: str) -> Dict[str, Any]:
 
 
 def create_bias_prompt(text: str) -> str:
-    """
-    Builds prompt for bias analysis.
-    """
-
     context = extract_context(text)
 
     sentiment = get_sentiment_signal(text)
 
     prompt = f"""
-You are an expert media bias analyst.
+        You are an expert media bias analyst.
 
-Analyze the following content and determine:
+        Analyze the following content and determine:
 
-1. Whether political bias is present.
-2. Whether ideological bias is present.
-3. Whether reporting is balanced or one-sided.
-4. Bias intensity from 0.0 to 1.0.
-5. Provide a short explanation.
+        1. Whether political bias is present.
+        2. Whether ideological bias is present.
+        3. Whether reporting is balanced or one-sided.
+        4. Bias intensity from 0.0 to 1.0.
+        5. Provide a short explanation.
 
-Definitions:
+        Definitions:
 
-Political bias:
-Favoring or criticizing a political party,
-government, politician, or political viewpoint.
+        Political bias:
+        Favoring or criticizing a political party,
+        government, politician, or political viewpoint.
 
-Ideological bias:
-Favoring or criticizing a belief system,
-such as liberalism, conservatism,
-nationalism, socialism, or similar ideologies.
+        Ideological bias:
+        Favoring or criticizing a belief system,
+        such as liberalism, conservatism,
+        nationalism, socialism, or similar ideologies.
 
-Reporting style:
-Balanced = multiple viewpoints presented.
+        Reporting style:
+        Balanced = multiple viewpoints presented.
 
-One-sided = primarily one viewpoint presented.
+        One-sided = primarily one viewpoint presented.
 
-Bias intensity:
-0.0 = no noticeable bias.
-1.0 = extremely biased.
+        Bias intensity:
+        0.0 = no noticeable bias.
+        1.0 = extremely biased.
 
-Detected Entities:
-{context["entities"]}
+        Detected Entities:
+        {context["entities"]}
 
-Detected Keywords:
-{context["keywords"]}
+        Detected Keywords:
+        {context["keywords"]}
 
-Transformer Sentiment Signal:
-{sentiment}
+        Transformer Sentiment Signal:
+        {sentiment}
+        Do not include markdown, code blocks, explanations, or additional text outside the JSON object.
+        Return ONLY valid JSON:
 
-Return ONLY valid JSON:
+        {{
+            "political_bias": false,
+            "ideological_bias": false,
+            "reporting_style": "Balanced",
+            "bias_intensity": 0.0,
+            "explanation": "Short explanation."
+        }}
 
-{{
-    "political_bias": false,
-    "ideological_bias": false,
-    "reporting_style": "Balanced",
-    "bias_intensity": 0.0,
-    "explanation": "Short explanation."
-}}
-
-Text:
-{text}
-"""
+        Text:
+        {text}
+        """
 
     return prompt
 
 
 def get_bias_from_model(text: str) -> str:
-    """
-    Sends prompt to Sarvam AI.
-    Currently returns placeholder response.
-    """
 
     prompt = create_bias_prompt(text)
 
-    # TODO:
-    # Replace with actual Sarvam AI API call
-
-    return json.dumps(
-        {
-            "political_bias": False,
-            "ideological_bias": False,
-            "reporting_style": "Unknown",
-            "bias_intensity": 0.0,
-            "explanation": "Sarvam AI integration pending."
-        }
-    )
+    return generate_response(prompt)
 
 
-def parse_model_response(
-    response: str
-) -> Dict[str, Any]:
-    """
-    Parses model response safely.
-    """
+def parse_model_response(response: str) -> Dict[str, Any]:
+    
 
     try:
 
@@ -200,12 +156,8 @@ def parse_model_response(
         }
 
 
-def analyze_bias(
-    text: str
-) -> Dict[str, Any]:
-    """
-    Main bias analysis function.
-    """
+def analyze_bias(text: str) -> Dict[str, Any]:
+    
 
     if not text or not text.strip():
 
