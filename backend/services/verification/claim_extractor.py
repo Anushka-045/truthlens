@@ -9,7 +9,6 @@ import json
 from typing import Dict, Any
 
 import spacy
-
 from backend.ai.sarvam_client import generate_response
 
 try:
